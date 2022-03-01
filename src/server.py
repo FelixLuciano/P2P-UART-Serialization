@@ -1,11 +1,9 @@
-import time
-
 from enlace import Enlace
 
 
 # SERIAL_NAME = '/dev/ttyACM0'          # Ubuntu
 # SERIAL_NAME = '/dev/tty.usbmodem1411' # Mac
-SERIAL_NAME = 'COM5'                  # Windows
+SERIAL_NAME = 'COM8'                  # Windows
 
 
 def main ():
@@ -15,16 +13,15 @@ def main ():
         com1.enable()
         print('Serial port enabled successfully!')
 
-        begin = time.monotonic()
-        rxBuffer, nRx = com1.getData(2)
-        finish = time.monotonic()
+        rxBuffer, size = com1.getData()
 
-        print(f'Recieved {len(rxBuffer)} kb of data after {(finish - begin) * 1000:.3g} ms.\n', rxBuffer)
+        nCommands = len(rxBuffer)
 
-        # Do stuff...
+        print(f'Received', nCommands, 'commands through', size, 'B of data from', SERIAL_NAME,'.')
 
-        print('sending', len(rxBuffer), 'kb of data to', SERIAL_NAME, '...')
-        com1.transmit(rxBuffer)
+        com1.transmit(nCommands.to_bytes(1, 'big'))
+
+        print('Sending response to client.')
 
     except Exception as error:
         print('ops! :-\\\n', error)
