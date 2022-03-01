@@ -7,8 +7,8 @@ class Interface(object):
     def __init__ (self, name):
         self.name = name
         self.port = None
-        self.baudrate = 115200
-        # self.baudrate = 9600
+        # self.baudrate = 115200
+        self.baudrate = 9600
         self.bytesize = serial.EIGHTBITS
         self.parity = serial.PARITY_NONE
         self.stop = serial.STOPBITS_ONE
@@ -82,6 +82,8 @@ class Interface(object):
             in the future. often a flush at the
             beginning solves!
             """
+            # self.flush()
+
             rxBufferDecoded = self.decode(rxBufferValid)
             nRx = len(rxBuffer)
 
