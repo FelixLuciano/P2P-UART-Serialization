@@ -1,9 +1,13 @@
 import threading
+import time
 
 
 class TX(object):
-    def __init__ (self, interface):
+    def __init__ (self, interface, prefix, sufix, separator):
         self.interface = interface
+        self.prefix = prefix
+        self.sufix = sufix
+        self.separator = separator
         self.buffer = bytes(bytearray())
         self.transLen = 0
         self.threadMutex = False
@@ -48,8 +52,25 @@ class TX(object):
         return self.transLen
 
 
+    def encode (self, *data):
+        if len(data) == 1 and type(data[0]) == list and len(data[0]) > 1:
+            data = data[0]
+
+        buffer = bytearray([self.separator]).join(data)
+
+        buffer.insert(0, self.prefix)
+        buffer.append(self.sufix)
+
+        return buffer
+
+
     def transmit (self, data):
-        self.buffer = data
+        buffer = self.encode(data)
+
+        self.buffer = buffer
         self.transLen = 0
 
         self.resume()
+        time.sleep(.05)
+
+        return buffer, len(buffer)
