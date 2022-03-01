@@ -9,10 +9,7 @@ from commands import Commands
 
 # SERIAL_NAME = '/dev/ttyACM0'          # Ubuntu
 # SERIAL_NAME = '/dev/tty.usbmodem1411' # Mac
-SERIAL_NAME = 'COM3'                  # Windows
-
-INPUT_IMAGE  = 'image.webp'
-OUTPUT_IMAGE = 'output.webp'
+SERIAL_NAME = 'COM5'                  # Windows
 
 Commands.add(0x00, 0xFF, 0x00, 0xFF)
 Commands.add(0x00, 0xFF, 0xFF, 00)
@@ -29,20 +26,25 @@ def main ():
         com1.enable()
         print('Serial port enabled successfully!')
 
-        sequence = Commands.getSequence(random.randint(10, 30))
-        txBuffer = Commands.getStream(sequence)
+        txBuffer = Commands.getSequence(random.randint(10, 30))
         txLen = len(txBuffer)
         begin = time.monotonic()
 
-        print('sending', len(sequence), 'commands through', txLen, 'kb of data to', SERIAL_NAME, '...\n', txBuffer)
-        com1.transmit(txBuffer)
+        buffer, size = com1.transmit(txBuffer)
+        print('sending', txLen, 'commands through', size, 'B of data to', SERIAL_NAME, '...')
 
         print('Waiting for server response...')
 
-        rxBuffer, nRx = com1.getData()
+        rxBuffer, size = com1.getData()
         finish = time.monotonic()
+        response = rxBuffer[0][0]
 
-        print(f'Recieved {len(rxBuffer)} kb of data after {(finish - begin) * 1000:.3g} ms.\n', rxBuffer)
+        print(f'Received response through', size, 'B of data after', f'{(finish - begin) * 1000:.3g}', 'ms.\nResponse:', response)
+
+        if response == txLen:
+            print('Success!')
+        else:
+            print('Fail!')
 
     except Exception as error:
         print('ops! :-\\\n', error)
