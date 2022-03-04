@@ -3,8 +3,8 @@ import random
 
 import numpy as np
 
-from enlace import Enlace
-from commands import Commands
+from lib.enlace import Enlace
+from lib.commands import Commands
 
 
 # SERIAL_NAME = '/dev/ttyACM0'          # Ubuntu

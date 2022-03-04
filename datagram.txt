@@ -1,0 +1,34 @@
+Datagrama
+
+     pos  8 Bits
+
+HDR  001  0xB7  Byte de start
+HDR  002  0x??  Tipo do pacote
+HDR  003  0x??  Número do pacote
+HDR  004  0x??  Número de pacotes
+HDR  005  0x??  Tamanho do pacote
+HDR  006  0xFF  Vazio
+HDR  007  0xFF  Vazio
+HDR  008  0xFF  Vazio
+HDR  009  0xFF  Vazio
+HDR  010  0xFF  Vazio
+
+PLD  011  0x??  Dados a serem enviados
+PLD  ...  0x??  Dados a serem enviados
+PLD  124  0x??  Dados a serem enviados
+
+EOP  125  0xDB  Byte de fim
+EOP  126  0x66  Byte de fim
+EOP  127  0x99  Byte de fim
+EOP  128  0xDB  Byte de fim
+
+
+
+Byte  Tipo de pacote
+
+0x00  Ping
+0x01  Pong
+0x02  Recebido
+0x03  Sucesso
+0x04  Erro
+0x05  

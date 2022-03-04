@@ -1,9 +1,9 @@
-from enlace import Enlace
+from lib.enlace import Enlace
 
 
 # SERIAL_NAME = '/dev/ttyACM0'          # Ubuntu
 # SERIAL_NAME = '/dev/tty.usbmodem1411' # Mac
-SERIAL_NAME = 'COM8'                  # Windows
+SERIAL_NAME = 'COM9'                  # Windows
 
 
 def main ():

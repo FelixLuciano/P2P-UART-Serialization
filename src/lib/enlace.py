@@ -1,8 +1,8 @@
 import time
 
-from enlaceRx import RX
-from enlaceTx import TX
-from interface import Interface
+from lib.enlaceRx import RX
+from lib.enlaceTx import TX
+from lib.interface import Interface
 
 
 class Enlace(object):
