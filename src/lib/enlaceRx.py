@@ -1,34 +1,28 @@
 import threading
 import time
 
+from package import Package
+
 
 class RX(object):
-    def __init__ (self, interface, prefix, sufix, separator):
+    READLEN = 1024
+
+
+    def __init__ (self, interface):
         self.interface = interface
-        self.prefix = prefix
-        self.sufix = sufix
-        self.separator = separator
-        self.buffer = bytes(bytearray())
+        self.buffer = []
         self.threadStop = False
-        self.threadMutex = True
+        self.threadPaused = True
         self.threadIddle = True
-        self.READLEN = 1024
 
 
     def _thread (self):
         while not self.threadStop:
-            if self.threadMutex:
+            if self.threadPaused:
                 rxTemp, nRx = self.interface.read(self.READLEN)
 
-                if nRx > 0:
-                    if rxTemp.startswith(self.prefix.to_bytes(1, 'big')):
-                        self.threadIddle = False
-
-                    if not self.threadIddle:
-                        self.buffer += rxTemp
-
-                    if rxTemp.endswith(self.sufix.to_bytes(1, 'big')):
-                        self.threadIddle = True
+                if nRx > 0 and Package.valid(rxTemp):
+                    self.buffer.append(Package.decode(rxTemp))
 
                 time.sleep(0.1)
 
@@ -44,11 +38,11 @@ class RX(object):
 
 
     def pause (self):
-        self.threadMutex = False
+        self.threadPaused = False
 
 
     def resume (self):
-        self.threadMutex = True
+        self.threadPaused = True
 
 
     def getLen (self):

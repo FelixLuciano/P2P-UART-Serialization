@@ -71,18 +71,23 @@ class Package:
 
     @classmethod
     def decode (self, package):
-        return package[10: -4]
+        return package[10: -4] #  if self.validate(package) else b''
 
 
     @classmethod
     def splitData (self, data, size):
         dataLen = len(data)
-        payloads = []
+        buffer = []
 
         for i in range(0, dataLen, size):
-            payloads.append(data[i:min(i+size, dataLen)])
+            buffer.append(data[i:min(i+size, dataLen)])
 
-        return payloads
+        return buffer
+
+
+    @classmethod
+    def getBufferSize (self, buffer):
+        return sum(map(len, buffer))
 
 
 test = Package('Hello World!', 'response')
