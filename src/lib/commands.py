@@ -1,33 +1,34 @@
-import binascii
-import random
+from lib.package import Package
 
 
 class Commands:
-    commands = []
+    @staticmethod
+    def tryServerConnection (thread):
+        while True:
+            print('Trying to connect to the server...')
+            Package(type_='ping').submit(thread)
 
-    @classmethod
-    def get (self, *values):
-        return bytes(bytearray(values))
+            response = Package.request(thread, timeout=5)
 
+            if response.type == 'error':
+                tryAgain = input('Server down. Try again? Y/N ')
 
-    @classmethod
-    def add (self, *values):
-        self.commands.append(self.get(*values))
+                if tryAgain.lower() not in ('y', 'yes'):
+                    exit()
+            elif response.type == 'pong':
+                break
 
-
-    @classmethod
-    def getRandom (self):
-        return random.choice(self.commands)
-
-
-    @classmethod
-    def getSequence (self, size):
-        return random.choices(self.commands, k=size)
+        print('Connected to the server successfully!')
 
 
-# Commands.add(0x00, 0xFF, 0x00, 0xFF)
-# Commands.add(0x00, 0xFF, 0xFF, 00)
-# Commands.add(0xFF)
-# Commands.add(0x00)
-# Commands.add(0xFF, 0x00)
-# Commands.add(0x00, 0xFF)
+    @staticmethod
+    def acceptConnection (thread):
+        print('Waiting for connection request...')
+
+        while True:
+            if Package.request(thread).type == 'ping':
+                Package(type_='pong').submit(thread)
+
+                break
+
+        print('Client successfully connected!')

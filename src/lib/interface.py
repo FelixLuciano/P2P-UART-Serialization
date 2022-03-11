@@ -3,27 +3,29 @@ import binascii
 import serial
 
 
-class Interface(object):
-    def __init__ (self, name):
+class Interface:
+    # BAUDRATE = 115200
+    BAUDRATE = 9600
+    BYTESIZE = serial.EIGHTBITS
+    PARITY = serial.PARITY_NONE
+    STOPBITS = serial.STOPBITS_ONE
+    TIMEOUT = 0.1
+
+
+    def __init__ (self, name:str):
         self.name = name
         self.port = None
-        # self.baudrate = 115200
-        self.baudrate = 9600
-        self.bytesize = serial.EIGHTBITS
-        self.parity = serial.PARITY_NONE
-        self.stop = serial.STOPBITS_ONE
-        self.timeout = 0.1
         self.rxRemain = b''
 
 
     def open (self):
         self.port = serial.Serial(
-            self.name,
-            self.baudrate,
-            self.bytesize,
-            self.parity,
-            self.stop,
-            self.timeout
+            port = self.name,
+            baudrate = self.BAUDRATE,
+            bytesize = self.BYTESIZE,
+            parity = self.PARITY,
+            stopbits = self.STOPBITS,
+            timeout = self.TIMEOUT
         )
 
 
@@ -36,15 +38,17 @@ class Interface(object):
         self.port.flushOutput()
 
 
-    def encode (self, data):
+    @staticmethod
+    def encode (data:bytes):
         return binascii.hexlify(data)
 
 
-    def decode (self, data):
+    @staticmethod
+    def decode (data:bytes):
         return binascii.unhexlify(data)
 
 
-    def write (self, txBuffer):
+    def write (self, txBuffer:bytes):
         """ Write data to serial port
 
         This command takes a buffer and format
@@ -57,10 +61,10 @@ class Interface(object):
 
         self.flush()
 
-        return nTx / 2
+        return nTx // 2
 
 
-    def read (self, nBytes):
+    def read (self, nBytes:int):
         """ Read nBytes from the UART com port
 
         Not all reading returns a multiple of 2
