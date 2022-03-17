@@ -6,18 +6,28 @@ class Header:
     TYPES = {
         'ping': 0x00,
         'pong': 0x01,
-        'data': 0x03,
-        'success': 0x04,
-        'error': 0x05
+        'data': 0x02,
+        'success': 0x03,
+        'error': 0x04
     }
 
 
     def __init__ (self, type_:str='data', index:int=0, length:int=0, size:int=0):
-        self.type = [k for k, v in self.TYPES.items() if type_ == v][0] if type(type_) != str else type_
-        self.type_byte = self.TYPES[type_] if type(type_) == str else type_
         self.index = index
         self.length = length
         self.size = size
+
+        if type(type_) != str:
+            try:
+                index = list(self.TYPES.values()).index(type_)
+                self.type = list(self.TYPES.keys())[index]
+            except:
+                self.type = 'data'
+
+            self.type_byte = self.type
+        else:
+            self.type = type_
+            self.type_byte = self.TYPES[self.type]
 
 
     def encode (self):
