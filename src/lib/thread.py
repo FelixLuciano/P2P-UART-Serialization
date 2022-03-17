@@ -6,7 +6,7 @@ from lib.interface import Interface
 
 
 class Thread:
-    def __init__ (self, name):
+    def __init__ (self, name:str):
         self.interface = Interface(name)
         self.rx = RX(self.interface)
         self.tx = TX(self.interface)
@@ -30,11 +30,12 @@ class Thread:
 
     def clear (self):
         self.rx.clear()
+        self.tx.clear()
 
 
-    def submit (self, *args, **kwargs):
+    def transmit (self, *args, **kwargs):
         return self.tx.transmit(*args, **kwargs)
 
 
-    def request (self, *args, **kwargs):
-        return self.rx.getData(*args, **kwargs)
+    def receive (self, *args, **kwargs):
+        return self.rx.receive(*args, **kwargs)
