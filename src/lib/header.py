@@ -6,8 +6,7 @@ class Header:
     TYPES = {
         'ping': 0x00,
         'pong': 0x01,
-        'request': 0x02,
-        'response': 0x03,
+        'data': 0x03,
         'success': 0x04,
         'error': 0x05
     }
@@ -22,15 +21,15 @@ class Header:
 
 
     def encode (self):
-        header = []
+        header = bytearray()
 
-        header.append(self.type_byte.to_bytes(1, 'big'))
-        header.append(self.index.to_bytes(1, 'big'))
-        header.append(self.length.to_bytes(1, 'big'))
-        header.append(self.size.to_bytes(1, 'big'))
-        header.append(bytes(self.SIZE - len(header)))
+        header.extend(self.type_byte.to_bytes(1, 'big'))
+        header.extend(self.index.to_bytes(2, 'big'))
+        header.extend(self.length.to_bytes(2, 'big'))
+        header.extend(self.size.to_bytes(1, 'big'))
+        header.extend(bytes(self.SIZE - len(header)))
 
-        return b''.join(header)
+        return bytes(header)
 
 
     @classmethod
@@ -39,15 +38,15 @@ class Header:
             return cls(type_='error')
 
         return cls(
-            type_= data[0],
-            index= data[1],
-            length= data[2],
-            size= data[3]
+            type_= int.from_bytes(data[0:1], 'big'),
+            index= int.from_bytes(data[1:3], 'big'),
+            length= int.from_bytes(data[3:5], 'big'),
+            size= int.from_bytes(data[5:6], 'big')
         )
 
 
     @classmethod
     def request (cls, thread:Thread, timeout:int=-1):
-        data, size = thread.request(cls.SIZE, timeout=timeout)
+        data, size = thread.receive(cls.SIZE, timeout=timeout)
 
         return cls.decode(data)
