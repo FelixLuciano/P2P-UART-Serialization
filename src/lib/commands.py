@@ -1,34 +1,26 @@
 from lib.package import Package
 
 
-class Commands:
-    @staticmethod
-    def tryServerConnection (thread):
-        while True:
-            print('Trying to connect to the server...')
-            Package(type_='ping').submit(thread)
+def tryServerConnection (thread, timeout:int=-1):
+    while True:
+        print('Trying to connect to the server...')
+        Package(type_='ping').submit(thread=thread, timeout=timeout)
 
-            response = Package.request(thread, timeout=5)
+        response = Package.request(thread=thread, type_='pong', timeout=timeout)
 
-            if response.type == 'error':
-                tryAgain = input('Server down. Try again? Y/N ')
+        if response.type == 'pong':
+            break
 
-                if tryAgain.lower() not in ('y', 'yes'):
-                    exit()
-            elif response.type == 'pong':
-                break
-
-        print('Connected to the server successfully!')
+    print('Connected to the server successfully!')
 
 
-    @staticmethod
-    def acceptConnection (thread):
-        print('Waiting for connection request...')
+def acceptClientConnection (thread):
+    print('Waiting for connection request...')
 
-        while True:
-            if Package.request(thread).type == 'ping':
-                Package(type_='pong').submit(thread)
+    while True:
+        if Package.request(thread=thread, type_='ping').type == 'ping':
+            Package(type_='pong').submit(thread=thread)
 
-                break
+            break
 
-        print('Client successfully connected!')
+    print('Client successfully connected!')
