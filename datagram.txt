@@ -2,12 +2,12 @@ Datagrama
 
      pos  8 Bits
 
-HDR  001  0xB7  Byte de start
-HDR  002  0x??  Tipo do pacote
+HDR  001  0x??  Tipo do pacote
+HDR  002  0x??  Número do pacote
 HDR  003  0x??  Número do pacote
 HDR  004  0x??  Número de pacotes
-HDR  005  0x??  Tamanho do pacote
-HDR  006  0xFF  Vazio
+HDR  005  0x??  Número de pacotes
+HDR  006  0x??  Tamanho do pacote
 HDR  007  0xFF  Vazio
 HDR  008  0xFF  Vazio
 HDR  009  0xFF  Vazio
