@@ -1,6 +1,7 @@
+import os
+
 from lib.thread import Thread
-from lib.commands import Commands
-from lib.package import Package
+from lib.commands import acceptClientConnection
 from lib.stream import Stream
 
 
@@ -8,17 +9,25 @@ from lib.stream import Stream
 # SERIAL_NAME = '/dev/tty.usbmodem1411' # Mac
 SERIAL_NAME = 'COM5'                  # Windows
 
+OUTPUT_IMAGE = 'output.webp'
+
 
 def main ():
     com1 = Thread(SERIAL_NAME)
 
+    if os.path.isfile(OUTPUT_IMAGE):
+        os.remove(OUTPUT_IMAGE)
+
     try:
         com1.enable()
-        Commands.acceptConnection(com1)
+        acceptClientConnection(com1)
 
         response = Stream.request(com1)
-        print(response.type, response.data)
 
+        with open(OUTPUT_IMAGE, 'wb') as file:
+            file.write(response.data)
+    except KeyboardInterrupt:
+        pass
     except Exception as error:
         print('ops! :-\\\n', error)
 
