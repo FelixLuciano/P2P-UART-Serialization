@@ -44,25 +44,27 @@ class Stream:
     def request (cls, thread:Thread, type_:str=None, length:int=None, timeout:int=-1):
         buffer = []
 
-        while True:
-            bufferLen = len(buffer)
-            nextIndex = buffer[-1].index + 1 if bufferLen > 0 else 0
-            nextType = buffer[-1].type if nextIndex > 0 else type_
-            nextLength = buffer[-1].length if bufferLen > 0 else length
-            response = Package.request(thread, type_=nextType, index=nextIndex, length=nextLength, timeout=timeout)
+        with alive_bar(title='Receiving', manual=True) as bar:
+            while True:
+                bufferLen = len(buffer)
+                nextIndex = buffer[-1].index + 1 if bufferLen > 0 else 0
+                nextType = buffer[-1].type if nextIndex > 0 else type_
+                nextLength = buffer[-1].length if bufferLen > 0 else length
+                response = Package.request(thread, type_=nextType, index=nextIndex, length=nextLength, timeout=timeout)
 
-            if response.type != 'error':
-                buffer.append(response)
+                if response.type != 'error':
+                    buffer.append(response)
+                    bar((response.index + 1) / response.length)
 
-                if bufferLen + 1 == response.length:
-                    break
-            else:
-                tryAgain = input('[Error] Attempt failed. Try again? y/n ')
+                    if bufferLen + 1 == response.length:
+                        break
+                else:
+                    tryAgain = input('[Error] Attempt failed. Try again? y/n ')
 
-                if tryAgain.lower() not in ('y', 'yes'):
-                    return cls()
-                    
-                thread.rx.clear()
+                    if tryAgain.lower() not in ('y', 'yes'):
+                        return cls()
+                        
+                    thread.rx.clear()
 
 
         Package(type_='success').submit(thread=thread, timeout=timeout)
@@ -72,7 +74,7 @@ class Stream:
 
     def submit (self, thread:Thread, timeout:int=-1):
         while True:
-            with alive_bar(len(self)) as bar:
+            with alive_bar(len(self), title='Sending') as bar:
                 for package in self.encode():
                     package.submit(thread, timeout=timeout)
                     bar()
