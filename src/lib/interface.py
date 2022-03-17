@@ -4,8 +4,19 @@ import serial
 
 
 class Interface:
-    # BAUDRATE = 115200
-    BAUDRATE = 9600
+    BAUDRATE = 115200
+    # BAUDRATE = 57600
+    # BAUDRATE = 38400
+    # BAUDRATE = 31250
+    # BAUDRATE = 28800
+    # BAUDRATE = 19200
+    # BAUDRATE = 14400
+    # BAUDRATE = 9600
+    # BAUDRATE = 4800
+    # BAUDRATE = 2400
+    # BAUDRATE = 1200
+    # BAUDRATE = 600
+    # BAUDRATE = 300
     BYTESIZE = serial.EIGHTBITS
     PARITY = serial.PARITY_NONE
     STOPBITS = serial.STOPBITS_ONE
