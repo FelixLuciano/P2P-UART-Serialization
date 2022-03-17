@@ -6,7 +6,7 @@ from lib.interface import Interface
 
 class RX:
     READ_LENGTH = 1024
-    READ_PREIOD = 0.1
+    READ_PREIOD = 0.01
 
 
     def __init__ (self, interface:Interface):
@@ -18,17 +18,17 @@ class RX:
 
     def _thread (self):
         while not self.threadStop:
-            if self.threadPaused:
+            if not self.threadPaused:
                 data, size = self.interface.read(self.READ_LENGTH)
 
                 if size > 0:
                     self.buffer += data
 
-                time.sleep(self.READ_PREIOD)
+            time.sleep(self.READ_PREIOD)
 
 
     def enable (self):
-        self.thread = Thread(target=self._thread, args=())
+        self.thread = Thread(target=self._thread)
 
         self.thread.start()
 
@@ -38,11 +38,11 @@ class RX:
 
 
     def pause (self):
-        self.threadPaused = False
+        self.threadPaused = True
 
 
     def resume (self):
-        self.threadPaused = True
+        self.threadPaused = False
 
 
     def getLen (self):
@@ -56,31 +56,37 @@ class RX:
     def clear (self):
         self.buffer = b''
 
-    
+
     def getBuffer (self, size:int=-1):
         if size == 0:
             return b'', 0
-
-        self.pause()
-
-        buffer = self.buffer[0:size] if size > 0 else self.buffer
-        self.buffer = self.buffer[size:] if size > 0 else b''
-
-        self.resume()
+        elif size > 0:
+            buffer = self.buffer[0:size]
+            self.buffer = self.buffer[size:]
+        else:
+            buffer = self.buffer
+            self.clear()
 
         return buffer, len(buffer)
 
 
-    def getData (self, size:int=-1, timeout:int=-1):
+    def receive (self, size:int=-1, timeout:int=-1):
         timer = 0
 
         while self.isEmpty() or self.getLen() < size:
+            if self.threadPaused:
+                self.resume()
+
             time.sleep(self.READ_PREIOD)
 
             if timeout > 0:
                 timer += self.READ_PREIOD
 
                 if timer >= timeout:
-                    return b'', 0
+                    self.pause()
+
+                    return self.getBuffer(0)
+
+        self.pause()
 
         return self.getBuffer(size)
