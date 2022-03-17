@@ -1,7 +1,6 @@
 import math
 
 from lib.thread import Thread
-from lib.commands import Commands
 from lib.header import Header
 from lib.package import Package
 
@@ -9,7 +8,8 @@ from lib.package import Package
 class Stream:
     PACKAGE_SIZE = 128
 
-    def __init__ (self, type_:str, data:bytes):
+
+    def __init__ (self, type_:str='data', data:bytes=b''):
         self.type = type_
         self.data = data
 
@@ -17,15 +17,12 @@ class Stream:
     def encode(self):
         payloadSize = self.PACKAGE_SIZE - Header.SIZE - len(Package.EOP)
         length = math.ceil(len(self.data) / payloadSize)
-        stream = []
 
         for index, step in enumerate(range(0, len(self.data), payloadSize)):
             payload = self.data[step:step+payloadSize]
             package = Package(self.type, index, length, payload)
 
-            stream.append(package)
-
-        return stream
+            yield package
 
 
     @classmethod
@@ -40,53 +37,38 @@ class Stream:
 
 
     @classmethod
-    def request (cls, thread:Thread, timeout:int=-1):
-        stream = []
+    def request (cls, thread:Thread, type_:str=None, length:int=None, timeout:int=-1):
+        buffer = []
 
         while True:
-            request = Package.request(thread, index=len(stream), timeout=timeout)
+            bufferLen = len(buffer)
+            nextIndex = buffer[-1].index + 1 if bufferLen > 0 else 0
+            nextType = buffer[-1].type if nextIndex > 0 else type_
+            nextLength = buffer[-1].length if bufferLen > 0 else length
+            request = Package.request(thread, type_=nextType, index=nextIndex, length=nextLength, timeout=timeout)
 
-            if request != None:
-                stream.append(request)
-                Package(type_='error').submit(thread)
+            buffer.append(request)
 
-                if len(stream) == request.length:
-                    break
-            else:
-                Package(type_='error').submit(thread)
-                # thread.clear()
+            if bufferLen + 1 == request.length:
+                break
 
-        Package(type_='success').submit(thread)
+        Package(type_='success').submit(thread=thread, timeout=timeout)
 
-        return cls.decode(stream)
+        return cls.decode(buffer)
 
 
     def submit (self, thread:Thread, timeout:int=-1):
-        ended = False
-
-        while not ended:
+        while True:
             for package in self.encode():
-                done = False
+                package.submit(thread, timeout=timeout)
 
-                while not done:
-                    package.submit(thread)
+            success, done = Package.getSuccessDone(
+                thread=thread,
+                message=f'Failed do submit {self.type} stream.',
+                timeout=timeout
+            )
 
-                    response = Package.request(thread, timeout=timeout)
-
-                    if response.type == 'success':
-                        done = True
-                    else:
-                        tryAgain = input('Sending failed. Try again? Y/N ')
-
-                        if tryAgain.lower() not in ('y', 'yes'):
-                            done = True
-
-            response = Package.request(thread, timeout=timeout)
-
-            if response.type == 'success':
-                ended = True
+            if success and done:
+                break
             else:
-                tryAgain = input('Sending failed. Try again? Y/N ')
-
-                if tryAgain.lower() not in ('y', 'yes'):
-                    ended = True
+                continue
