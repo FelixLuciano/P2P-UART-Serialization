@@ -6,7 +6,7 @@ class Package:
     EOP = b'\xDB\x66\x99\xDB'
 
 
-    def __init__ (self, type_:str, index:int=0, length:int=1, data:bytes=b''):
+    def __init__ (self, type_:str='data', index:int=0, length:int=1, data:bytes=b''):
         self.type = type_
         self.index = index
         self.length = length
@@ -30,24 +30,62 @@ class Package:
 
 
     @classmethod
-    def request (cls, thread:Thread, type_:str=None, index:int=0, timeout:int=-1):
-        header = Header.request(thread, timeout=timeout)
-        data, _ = thread.request(header.size, timeout=timeout)
-        eop, _ = thread.request(len(cls.EOP), timeout=timeout)
+    def request (cls, thread:Thread, type_:str=None, index:int=None, length:int=None, size:int=None, timeout:int=-1):
+        while True:
+            header = Header.request(thread, timeout=timeout)
+            data, _ = thread.receive(header.size, timeout=timeout)
+            eop, _ = thread.receive(len(cls.EOP), timeout=timeout)
 
-        if (index != header.index or
-            type_ and header.type != type or
-            eop != cls.EOP
-        ):
-            return cls(type_='error')
+            if (type_ and header.type != type_ or
+                index and header.index != index or
+                length and header.length != length or
+                size and header.size != size or
+                eop != cls.EOP
+            ):
+                continue
 
-        return cls(
-            type_ = header.type,
-            index = header.index,
-            length = header.length,
-            data = data
-        )
+            if header.type != 'success':
+                cls(type_='success').submit(thread=thread, timeout=timeout)
+
+            return cls(
+                type_ = header.type,
+                index = header.index,
+                length = header.length,
+                data = data
+            )
 
 
-    def submit (self, thread:Thread):
-        thread.submit(self.encode())
+    def submit (self, thread:Thread, timeout:int=-1):
+        while True:
+            thread.transmit(self.encode())
+
+            if self.type != 'success':
+                success, done = self.getSuccessDone(
+                    thread=thread,
+                    message=f'Failed do submit {self.type} at {self.index + 1} of {self.length}.',
+                    timeout=timeout
+                )
+
+                if success and done:
+                    break
+            else:
+                break
+
+
+    @classmethod
+    def getSuccessDone (cls, thread:Thread, message:str='Attempt failed.', timeout:int=-1):
+        response = cls.request(thread, type_='success', timeout=timeout)
+
+        if  response.type == 'error':
+            print('[Error]', message, end=' ')
+
+            tryAgain = input('Try again? y/n ')
+
+            if tryAgain.lower() not in ('y', 'yes'):
+                return False, True
+            else:
+                return False, False
+        elif response.type == 'success':
+            return True, True
+        else:
+            return False, True
