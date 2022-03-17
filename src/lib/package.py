@@ -31,28 +31,28 @@ class Package:
 
     @classmethod
     def request (cls, thread:Thread, type_:str=None, index:int=None, length:int=None, size:int=None, timeout:int=-1):
-        while True:
-            header = Header.request(thread, timeout=timeout)
-            data, _ = thread.receive(header.size, timeout=timeout)
-            eop, _ = thread.receive(len(cls.EOP), timeout=timeout)
+        header = Header.request(thread, timeout=timeout/3)
+        data, _ = thread.receive(header.size, timeout=timeout/3)
+        eop, _ = thread.receive(len(cls.EOP), timeout=timeout/3)
 
-            if (type_ and header.type != type_ or
-                index and header.index != index or
-                length and header.length != length or
-                size and header.size != size or
-                eop != cls.EOP
-            ):
-                continue
+        if (type_ and header.type != type_ or
+            index and header.index != index or
+            length and header.length != length or
+            size and header.size != size or
+            eop != cls.EOP
+        ):
+            return cls(type_='error')
 
-            if header.type != 'success':
-                cls(type_='success').submit(thread=thread, timeout=timeout)
+        if header.type != 'success':
+            cls(type_='success').submit(thread=thread, timeout=timeout)
 
-            return cls(
-                type_ = header.type,
-                index = header.index,
-                length = header.length,
-                data = data
-            )
+        return cls(
+            type_ = header.type,
+            index = header.index,
+            length = header.length,
+            data = data
+        )
+
 
 
     def submit (self, thread:Thread, timeout:int=-1):
@@ -68,6 +68,8 @@ class Package:
 
                 if success and done:
                     break
+                if not success and done:
+                    exit()
             else:
                 break
 

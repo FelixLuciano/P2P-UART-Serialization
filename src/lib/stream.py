@@ -1,5 +1,7 @@
 import math
 
+from alive_progress import alive_bar
+
 from lib.thread import Thread
 from lib.header import Header
 from lib.package import Package
@@ -7,6 +9,7 @@ from lib.package import Package
 
 class Stream:
     PACKAGE_SIZE = 128
+    PAYLOAD_SIZE = PACKAGE_SIZE - Header.SIZE - len(Package.EOP)
 
 
     def __init__ (self, type_:str='data', data:bytes=b''):
@@ -14,13 +17,14 @@ class Stream:
         self.data = data
 
 
-    def encode(self):
-        payloadSize = self.PACKAGE_SIZE - Header.SIZE - len(Package.EOP)
-        length = math.ceil(len(self.data) / payloadSize)
+    def __len__ (self):
+        return math.ceil(len(self.data) / self.PAYLOAD_SIZE)
 
-        for index, step in enumerate(range(0, len(self.data), payloadSize)):
-            payload = self.data[step:step+payloadSize]
-            package = Package(self.type, index, length, payload)
+
+    def encode(self):
+        for index, step in enumerate(range(0, len(self.data), self.PAYLOAD_SIZE)):
+            payload = self.data[step:step+self.PAYLOAD_SIZE]
+            package = Package(self.type, index, len(self), payload)
 
             yield package
 
@@ -45,12 +49,21 @@ class Stream:
             nextIndex = buffer[-1].index + 1 if bufferLen > 0 else 0
             nextType = buffer[-1].type if nextIndex > 0 else type_
             nextLength = buffer[-1].length if bufferLen > 0 else length
-            request = Package.request(thread, type_=nextType, index=nextIndex, length=nextLength, timeout=timeout)
+            response = Package.request(thread, type_=nextType, index=nextIndex, length=nextLength, timeout=timeout)
 
-            buffer.append(request)
+            if response.type != 'error':
+                buffer.append(response)
 
-            if bufferLen + 1 == request.length:
-                break
+                if bufferLen + 1 == response.length:
+                    break
+            else:
+                tryAgain = input('[Error] Attempt failed. Try again? y/n ')
+
+                if tryAgain.lower() not in ('y', 'yes'):
+                    return cls()
+                    
+                thread.rx.clear()
+
 
         Package(type_='success').submit(thread=thread, timeout=timeout)
 
@@ -59,8 +72,10 @@ class Stream:
 
     def submit (self, thread:Thread, timeout:int=-1):
         while True:
-            for package in self.encode():
-                package.submit(thread, timeout=timeout)
+            with alive_bar(len(self)) as bar:
+                for package in self.encode():
+                    package.submit(thread, timeout=timeout)
+                    bar()
 
             success, done = Package.getSuccessDone(
                 thread=thread,
@@ -71,4 +86,5 @@ class Stream:
             if success and done:
                 break
             else:
+                thread.tx.clear()
                 continue
