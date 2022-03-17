@@ -17,12 +17,12 @@ def main ():
 
     try:
         com1.enable()
-        tryServerConnection(com1, timeout=5)     
+        tryServerConnection(com1, timeout=5)   
 
         with open(INPUT_IMAGE, 'rb') as file:
             package = Stream(data=file.read())
 
-        package.submit(com1)
+        package.submit(com1, timeout=1)
     except KeyboardInterrupt:
         pass
     except Exception as error:
