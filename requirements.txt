@@ -1,2 +1,2 @@
-numpy
 pyserial
+alive_bar
