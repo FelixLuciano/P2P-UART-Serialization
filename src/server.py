@@ -22,7 +22,7 @@ def main ():
         com1.enable()
         acceptClientConnection(com1)
 
-        response = Stream.request(com1)
+        response = Stream.request(com1, timeout=5)
 
         with open(OUTPUT_IMAGE, 'wb') as file:
             file.write(response.data)
