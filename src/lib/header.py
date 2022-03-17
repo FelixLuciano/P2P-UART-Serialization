@@ -12,7 +12,7 @@ class Header:
     }
 
 
-    def __init__ (self, type_:str, index:int=0, length:int=0, size:int=0):
+    def __init__ (self, type_:str='data', index:int=0, length:int=0, size:int=0):
         self.type = [k for k, v in self.TYPES.items() if type_ == v][0] if type(type_) != str else type_
         self.type_byte = self.TYPES[type_] if type(type_) == str else type_
         self.index = index
