@@ -3,34 +3,35 @@ from lib.thread import Thread
 
 
 class Package:
-    EOP = b'\xDB\x66\x99\xDB'
+    PAYLOAD_SIZE = 114
+    EOP = b'\xAA\xBB\xCC\xDD'
 
 
-    def __init__ (self, type_:str='data', index:int=0, length:int=1, data:bytes=b''):
+    def __init__ (self, type_:str='data', length:int=None, index:int=None, data:bytes=b''):
         self.type = type_
-        self.index = index
         self.length = length
+        self.index = index
         self.data = data
 
 
     def encode (self):
         package = []
         header = Header(
-            type_ = self.type,
-            index = self.index,
-            length = self.length,
-            size = len(self.data)
+            type_=self.type,
+            index=self.index,
+            length=self.length,
+            size=len(self.data)
         )
 
         package.append(header.encode())
-        package.append(self.data)
+        package.append(self.data[0:self.PAYLOAD_SIZE])
         package.append(self.EOP)
 
         return b''.join(package)
 
 
     @classmethod
-    def request (cls, thread:Thread, type_:str=None, index:int=None, length:int=None, size:int=None, timeout:int=-1):
+    def request (cls, thread:Thread, type_:str=None, index:int=None, length:int=None, size:int=None, timeout:int=None):
         header = Header.request(thread, timeout=timeout/3)
         data, _ = thread.receive(header.size, timeout=timeout/3)
         eop, _ = thread.receive(len(cls.EOP), timeout=timeout/3)
@@ -41,18 +42,17 @@ class Package:
             size and header.size != size or
             eop != cls.EOP
         ):
-            return cls(type_='error')
+            return cls(type_='error', index=index)
 
         if header.type != 'success':
-            cls(type_='success').submit(thread=thread, timeout=timeout)
+            cls(type_='success', index=index).submit(thread=thread, timeout=timeout)
 
         return cls(
-            type_ = header.type,
-            index = header.index,
-            length = header.length,
-            data = data
+            type_=header.type,
+            index=header.index,
+            length=header.length,
+            data=data
         )
-
 
 
     def submit (self, thread:Thread, timeout:int=-1):
@@ -62,7 +62,8 @@ class Package:
             if self.type != 'success':
                 success, done = self.getSuccessDone(
                     thread=thread,
-                    message=f'Failed do submit {self.type} at {self.index + 1} of {self.length}.',
+                    index=self.index,
+                    message=f'Failed do submit {self.type} at {self.index} of {self.length}.',
                     timeout=timeout
                 )
 
@@ -75,8 +76,8 @@ class Package:
 
 
     @classmethod
-    def getSuccessDone (cls, thread:Thread, message:str='Attempt failed.', timeout:int=-1):
-        response = cls.request(thread, type_='success', timeout=timeout)
+    def getSuccessDone (cls, thread:Thread, index:int=1, message:str='Attempt failed.', timeout:int=None):
+        response = cls.request(thread, type_='success', index=index, timeout=timeout)
 
         if  response.type == 'error':
             print('[Error]', message, end=' ')
