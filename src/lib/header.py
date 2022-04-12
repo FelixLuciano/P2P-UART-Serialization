@@ -14,13 +14,13 @@ class Header:
     }
 
 
-    def __init__ (self, type_:str='data', length:int=1, index:int=1, size:int=0, id:int=0):
+    def __init__ (self, type_:str='data', length:int=1, index:int=1, size:int=0):
         self.type = type_
         self.type_byte = self.TYPES[self.type]
         self.length = length
         self.index = index
         self.size = size
-        self.id = id
+
 
     @classmethod
     def getType (cls, byte:int):
@@ -41,10 +41,8 @@ class Header:
         header.extend(self.type_byte.to_bytes(2, 'big'))
 
         # Byte h1 - NC
-        if self.type == request:
-            header.extend(self.id.to_bytes(2, 'big'))
-        else:
-            header.extend((0).to_bytes(2, 'big'))
+        header.extend((0).to_bytes(2, 'big'))
+
         # Byte h2 - NC
         header.extend((0).to_bytes(2, 'big'))
 
