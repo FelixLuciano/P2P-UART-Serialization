@@ -1,26 +1,29 @@
+from sqlalchemy import false
 from lib.package import Package
+import time
 
 
 def tryServerConnection (thread, timeout:int=-1):
-    while True:
+    inicia = False
+    while inicia == False:
         print('Trying to connect to the server...')
-        Package(type_='ping').submit(thread=thread, timeout=timeout)
+        Package(type_='request').submit(thread=thread, timeout=timeout, id = 1)
+        
+        response = Package.request(thread=thread, type_='response', timeout=timeout)
 
-        response = Package.request(thread=thread, type_='pong', timeout=timeout)
-
-        if response.type == 'pong':
-            break
+        if response.type == 'response':
+            inicia == True
 
     print('Connected to the server successfully!')
 
 
 def acceptClientConnection (thread):
     print('Waiting for connection request...')
-
-    while True:
-        if Package.request(thread=thread, type_='ping').type == 'ping':
-            Package(type_='pong').submit(thread=thread)
-
-            break
-
+    ocioso = True
+    while ocioso == True:
+        request = Package.request(thread=thread, type_='request')
+        if request.type == 'request' and request.id == 1:
+            ocioso = False
+        time.sleep(1)
+    Package(type_='response').submit(thread=thread)
     print('Client successfully connected!')

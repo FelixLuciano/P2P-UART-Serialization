@@ -1,5 +1,6 @@
 from lib.header import Header
 from lib.thread import Thread
+import time
 
 
 class Package:
@@ -51,14 +52,15 @@ class Package:
             type_=header.type,
             index=header.index,
             length=header.length,
-            data=data
+            data=data,
+            id = header.id
         )
 
 
     def submit (self, thread:Thread, timeout:int=-1):
         while True:
             thread.transmit(self.encode())
-
+            time.sleep(5)
             if self.type != 'success':
                 success, done = self.getSuccessDone(
                     thread=thread,
