@@ -8,7 +8,7 @@ class Package:
     EOP = b'\xAA\xBB\xCC\xDD'
 
 
-    def __init__ (self, type_:str='data', length:int=None, index:int=None, data:bytes=b''):
+    def __init__ (self, type_:str='data', length:int=1, index:int=1, data:bytes=b''):
         self.type = type_
         self.length = length
         self.index = index
@@ -16,7 +16,7 @@ class Package:
 
 
     def encode (self):
-        package = []
+        package = bytearray()
         header = Header(
             type_=self.type,
             index=self.index,
@@ -24,18 +24,18 @@ class Package:
             size=len(self.data)
         )
 
-        package.append(header.encode())
-        package.append(self.data[0:self.PAYLOAD_SIZE])
-        package.append(self.EOP)
+        package.extend(header.encode())
+        package.extend(self.data[0:self.PAYLOAD_SIZE])
+        package.extend(self.EOP)
 
-        return b''.join(package)
+        return bytes(package)
 
 
     @classmethod
     def request (cls, thread:Thread, type_:str=None, index:int=None, length:int=None, size:int=None, timeout:int=None):
         header = Header.request(thread, timeout=timeout/3)
-        data, _ = thread.receive(header.size, timeout=timeout/3)
-        eop, _ = thread.receive(len(cls.EOP), timeout=timeout/3)
+        data, _ = thread.receive(size=header.size, timeout=timeout/3)
+        eop, _ = thread.receive(size=len(cls.EOP), timeout=timeout/3)
 
         if (type_ and header.type != type_ or
             index and header.index != index or
@@ -43,12 +43,21 @@ class Package:
             size and header.size != size or
             eop != cls.EOP
         ):
-            return cls(type_='error', index=index)
+            return Error(index=index)
 
         if header.type != 'success':
-            cls(type_='success', index=index).submit(thread=thread, timeout=timeout)
+            Success(index=index).submit(thread=thread, timeout=timeout)
 
-        return cls(
+        types = {
+            'request': Request,
+            'response': Response,
+            'data': Data,
+            'success': Success,
+            'timeout': TimeOut,
+            'error': Error
+        }
+
+        return types.get(header.type, Data)(
             type_=header.type,
             index=header.index,
             length=header.length,
@@ -60,7 +69,6 @@ class Package:
     def submit (self, thread:Thread, timeout:int=-1):
         while True:
             thread.transmit(self.encode())
-            time.sleep(5)
             if self.type != 'success':
                 success, done = self.getSuccessDone(
                     thread=thread,
@@ -94,3 +102,38 @@ class Package:
             return True, True
         else:
             return False, True
+
+
+class Request (Package):
+    def __init__ (self, target:int=None, length:int=0):
+        super().__init__(type_='request', length=length, index=target)
+        self.target = target
+
+
+class Response (Package):
+    def __init__ (self):
+        super().__init__(type_='response')
+
+
+class Data (Package):
+    def __init__ (self, length:int=1, index:int=1, data:bytes=b''):
+        super().__init__(type_='data', length=length, index=index, data=data)
+
+
+class Success (Package):
+    def __init__ (self, package_id:int=None):
+        super().__init__(type_='success', index=package_id)
+        
+        self.package_id = package_id
+
+
+class TimeOut (Package):
+    def __init__ (self):
+        super().__init__(type_='timeout')
+
+
+class Error (Package):
+    def __init__ (self, package_id:int=None):
+        super().__init__(type_='error', index=package_id)
+        
+        self.package_id = package_id
