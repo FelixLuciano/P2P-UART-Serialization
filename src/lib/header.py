@@ -1,4 +1,3 @@
-from requests import request
 from lib.thread import Thread
 
 
@@ -112,8 +111,11 @@ class Header:
 
 
     @classmethod
-    def request (cls, thread:Thread, timeout:int=-1):
+    def request (cls, thread:Thread, type_:str=None, length:int=None, index:int=None, size:int=None, timeout:int=-1):
         data, size = thread.receive(cls.SIZE, timeout=timeout)
+
+        if size == 0:
+            return cls(type_='timeout', type_=type_, length=length, index=index, size=size)
 
         return cls.decode(data)
 
