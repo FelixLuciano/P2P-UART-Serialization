@@ -1,137 +1,258 @@
-from lib.header import Header
-from lib.thread import Thread
 import time
+
+from lib.thread import Thread
+import lib.header as header
 
 
 class Package:
     PAYLOAD_SIZE = 114
     EOP = b'\xAA\xBB\xCC\xDD'
+    _types = {}
 
 
-    def __init__ (self, type_:str='data', length:int=None, index:int=None, data:bytes=b''):
-        self.type = type_
+    def __init__ (self, length:int=1, index:int=1):
         self.length = length
         self.index = index
-        self.data = data
+
+
+    @classmethod
+    def register_type (cls, name:str, instance):
+        cls._types[name] = instance
+
+
+    def submit (self, thread:Thread):
+        thread.transmit(self.encode())
+
+
+
+class Request (Package):
+    type = 'request'
+
+
+    def __init__ (self, target:int=None):
+        super().__init__()
+        self.target = target
 
 
     def encode (self):
         package = bytearray()
-        header = Header(
-            type_=self.type,
-            index=self.index,
-            length=self.length,
-            size=len(self.data)
+        header_ = header.Request(
+            target = self.target
         )
 
-        package.extend(header.encode())
-        package.extend(self.data[0:self.PAYLOAD_SIZE])
+        package.extend(header_.encode())
         package.extend(self.EOP)
 
         return bytes(package)
 
 
     @classmethod
-    def request (cls, thread:Thread, type_:str=None, index:int=None, length:int=None, size:int=None, timeout:int=20):
-        header = Header.request(thread=thread, type_=type_, length=length, index=index, size=size, timeout=timeout/3)
-        data, len_data = thread.receive(size=header.size, timeout=timeout/3)
-        eop, len_eop = thread.receive(size=len(cls.EOP), timeout=timeout/3)
+    def request (cls, thread:Thread, timeout:int=None, *args, **kwargs):
+        header_ = header.Request.request(thread=thread,timeout=timeout, *args, **kwargs)
 
-        if header.type == 'timeout' or len_data == 0 or len_eop == 0:
-            package = TimeOut()
+        if header_.type == 'error':
+            return Error()
+        elif header_.type == 'timeout':
+            return Timeout()
 
-            package.submit(read=thread, timeout=timeout/3)
+        eop, len_eop = thread.receive(size=len(cls.EOP), timeout=timeout)
 
-            return package
+        if eop != cls.EOP:
+            return Error()
+        elif len_eop == 0:
+            return Timeout()
 
-        elif (type_ and header.type != type_ or
-            index and header.index != index or
-            length and header.length != length or
-            size and header.size != size and len_data == size or
-            eop != cls.EOP
-        ):
-            error = Error(index=index)
+        return cls(target=header_.target)
 
-            error.submit(thread=thread, timeout=timeout)
 
-            return error
 
-        elif header.type == 'data':
-            Success(index=index).submit(thread=thread, timeout=timeout)
+class Response (Package):
+    def __init__ (self):
+        super().__init__()
 
-        return cls(
-            type_=header.type,
-            index=header.index,
-            length=header.length,
-            data=data
+
+    def encode (self):
+        package = bytearray()
+        header_ = header.Response()
+
+        package.extend(header_.encode())
+        package.extend(self.EOP)
+
+        return bytes(package)
+
+
+    @classmethod
+    def request (cls, thread:Thread, timeout:int=None, *args, **kwargs):
+        header_ = header.Response.request(thread=thread,timeout=timeout, *args, **kwargs)
+
+        if header_.type == 'error':
+            return Error(package_id=header_.package_id)
+        elif header_.type == 'timeout':
+            return Timeout()
+
+        eop, len_eop = thread.receive(size=len(cls.EOP), timeout=timeout)
+
+        if eop != cls.EOP:
+            return Error(package_id=header_.header_)
+        elif len_eop == 0:
+            return Timeout()
+
+        return cls()
+
+
+
+class Data (Package):
+    def __init__ (self, length:int=None, index:int=None, data:bytes=b''):
+        super().__init__(length=length, index=index)
+        self.data = data
+
+
+    def __len__ (self):
+        return len(self.data)
+
+
+    def encode (self):
+        package = bytearray()
+        header_ = header.Data(
+            length=self.length,
+            index=self.index,
+            size=len(self),
         )
+
+        package.extend(header_.encode())
+        package.extend(self.data)
+        package.extend(self.EOP)
+
+        return bytes(package)
 
 
     def submit (self, thread:Thread, timeout:int=-1):
-        submit_success = True
+        submit_success = False
 
-        while True:
+        while not submit_success:
             thread.transmit(self.encode())
 
-            if self.type == 'data':
-                success, done = self.getSuccessDone(
-                    thread=thread,
-                    index=self.index,
-                    timeout=timeout
-                )
+            response = Success(package_id=self.index).request(thread=thread, timeout=timeout)
 
-                if done:
-                    submit_success = success
-                    break
-            else:
+            if response.type == 'error':
+                response.submit(thread=thread, timeout=timeout)
+            elif response.type == 'timeout':
+                response.submit(thread=thread, timeout=timeout)
                 break
+            elif response.type == 'success':
+                submit_success = True
 
         return submit_success
 
 
     @classmethod
-    def getSuccessDone (cls, thread:Thread, index:int=1, timeout:int=None):
-        response = cls.request(thread, type_='success', index=index, timeout=timeout)
-        success = False
-        done = False
+    def request (cls, thread:Thread, timeout:int=None, *args, **kwargs):
+        header_ = header.Data.request(thread=thread,timeout=timeout, *args, **kwargs)
 
-        if response.type == 'error':
-            done = True
-        elif response.type == 'success':
-            success = True
-            done = True
-        else:
-            done = True
+        if header_.type == 'error':
+            return Error(package_id = header_.package_id)
+        elif header_.type == 'timeout':
+            return Timeout()
 
-        return success, done
+        data, len_data = thread.receive(size=header_.size, timeout=timeout)
 
+        if len_data < header_.size:
+            return Error(package_id=header_.index)
+        if len_data == 0:
+            return Timeout()
 
-class Request (Package):
-    def __init__ (self, target:int=0, length:int=None):
-        super().__init__(type_='request', length=length, index=target)
-        self.target = target
+        eop, len_eop = thread.receive(size=len(cls.EOP), timeout=timeout)
 
+        if eop != cls.EOP:
+            return Error(package_id=header_.index)
+        elif len_eop == 0:
+            return Timeout()
 
-class Response (Package):
-    def __init__ (self):
-        super().__init__(type_='response')
+        return cls(
+            length = header_.length,
+            index = header_.index,
+            data = data
+        )
 
-
-class Data (Package):
-    def __init__ (self, length:int=1, index:int=1, data:bytes=b''):
-        super().__init__(type_='data', length=length, index=index, data=data)
 
 
 class Success (Package):
-    def __init__ (self, index:int=None):
-        super().__init__(type_='success', index=index)
+    def __init__ (self, package_id:int=None):
+        super().__init__()
+        self.package_id = package_id
 
 
-class TimeOut (Package):
+    def encode (self):
+        package = bytearray()
+        header_ = header.Success(
+            package_id = self.package_id
+        )
+
+        package.extend(header_.encode())
+        package.extend(self.EOP)
+
+        return bytes(package)
+
+
+    @classmethod
+    def request (cls, thread:Thread, timeout:int=None, *args, **kwargs):
+        header_ = header.Success.request(thread=thread,timeout=timeout, *args, **kwargs)
+
+        if header_.type == 'error':
+            return Error()
+        elif header_.type == 'timeout':
+            return Timeout()
+
+        eop, len_eop = thread.receive(size=len(cls.EOP), timeout=timeout)
+
+        if eop != cls.EOP:
+            return Error()
+        elif len_eop == 0:
+            return Timeout()
+
+        return cls(package_id=header_.package_id)
+
+
+
+class Timeout (Package):
     def __init__ (self):
-        super().__init__(type_='timeout')
+        super().__init__()
+
+
+    def encode (self):
+        package = bytearray()
+        header_ = header.Timeout()
+
+        package.extend(header_.encode())
+        package.extend(self.EOP)
+
+        return bytes(package)
+
 
 
 class Error (Package):
-    def __init__ (self, index:int=None):
-        super().__init__(type_='error', index=index)
+    def __init__ (self, package_id:int=None):
+        super().__init__()
+        self.package_id = package_id
+
+
+    def encode (self):
+        package = bytearray()
+        header_ = header.Error(
+            package_id = self.package_id
+        )
+
+        package.extend(header_.encode())
+        package.extend(self.EOP)
+
+        return bytes(package)
+
+
+
+Package.register_type('request', Request)
+Package.register_type('response', Response)
+Package.register_type('data', Data)
+Package.register_type('success', Success)
+Package.register_type('timeout', Timeout)
+Package.register_type('error', Error)
+
