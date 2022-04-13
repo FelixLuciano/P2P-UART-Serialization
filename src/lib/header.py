@@ -6,10 +6,9 @@ class Header:
     _types = {}
 
 
-    def __init__ (self, length:int=1, index:int=1, size:int=0):
+    def __init__ (self, length:int=1, index:int=1):
         self.length = length
         self.index = index
-        self.size = size
 
 
     @classmethod
@@ -125,7 +124,8 @@ class Data (Header):
 
 
     def __init__ (self, length:int=1, index:int=1, size:int=0):
-        super().__init__(length=length, index=index, size=size)
+        super().__init__(length=length, index=index)
+        self.size = size
 
 
     @classmethod
