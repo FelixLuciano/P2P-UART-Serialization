@@ -150,21 +150,33 @@ class Data (Package):
         header_ = header.Data.request(thread=thread,timeout=timeout, *args, **kwargs)
 
         if header_.type == 'error':
-            return Error(package_id = header_.package_id)
+            error = Error(package_id = header_.package_id)
+
+            error.submit(thread=thread, timeout=timeout)
+
+            return error
         elif header_.type == 'timeout':
             return Timeout()
 
         data, len_data = thread.receive(size=header_.size, timeout=timeout)
 
         if len_data < header_.size:
-            return Error(package_id=header_.index)
+            error =  Error(package_id=header_.index)
+
+            error.submit(thread=thread, timeout=timeout)
+
+            return error
         if len_data == 0:
             return Timeout()
 
         eop, len_eop = thread.receive(size=len(cls.EOP), timeout=timeout)
 
         if eop != cls.EOP:
-            return Error(package_id=header_.index)
+            error = Error(package_id=header_.index)
+
+            error.submit(thread=thread, timeout=timeout)
+
+            return error
         elif len_eop == 0:
             return Timeout()
 
