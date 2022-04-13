@@ -20,9 +20,11 @@ class Header:
     def get_type (cls, type_bytes:bytes):
         type_value = int.from_bytes(type_bytes, 'big')
 
-        for name, instance in cls._types.items():
+        for instance in cls._types.values():
             if type_value == instance.type_byte:
-                return name
+                return instance
+
+        return None
 
 
     def encode (self):
@@ -59,8 +61,8 @@ class Header:
 
     @classmethod
     def decode (cls, data:bytes, *args, **kwargs):
-        type_ = cls.get_type(data[0:1])
-        instance = cls._types[type_]
+        type_bytes = data[0:1]
+        instance = cls.get_type(type_bytes)
 
         return instance.decode(data, *args, **kwargs)
 
@@ -72,7 +74,12 @@ class Header:
         if len_data == 0:
             return Timeout()
 
-        return cls.decode(data, *args, **kwargs)
+        header = cls.decode(data, *args, **kwargs)
+
+        if header.type != cls.type:
+            return Error()
+
+        return header
 
 
 
@@ -81,13 +88,14 @@ class Request (Header):
     type_byte = 0x01
 
 
-    def __init__ (self, target:int=0):
-        super().__init__()
+    def __init__ (self, target:int=0, length:int=0):
+        super().__init__(length=length)
         self.target = target
 
     @classmethod
     def decode (cls, data:bytes):
         return cls(
+          length = int.from_bytes(data[3:4], 'big'),
           target = int.from_bytes(data[5:6], 'big')
         )
 
