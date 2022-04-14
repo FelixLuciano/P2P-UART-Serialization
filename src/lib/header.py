@@ -16,17 +16,6 @@ class Header:
         cls._types.append(instance)
 
 
-    @classmethod
-    def get_type (cls, type_bytes:bytes):
-        type_value = int.from_bytes(type_bytes, 'big')
-
-        for instance in cls._types:
-            if type_value == instance.type_byte:
-                return instance
-
-        return None
-
-
     def encode (self):
         header = bytearray()
 
@@ -62,9 +51,13 @@ class Header:
     @classmethod
     def decode (cls, data:bytes, *args, **kwargs):
         type_bytes = data[0:1]
-        instance = cls.get_type(type_bytes)
+        type_value = int.from_bytes(type_bytes, 'big')
 
-        return instance.decode(data, *args, **kwargs)
+        for instance in cls._types:
+            if type_value == instance.type_byte:
+                return instance.decode(data, *args, **kwargs)
+
+        return Error()
 
 
     @classmethod
@@ -103,7 +96,7 @@ class Request (Header):
 
         data[5:6] = self.target.to_bytes(1, 'big')
 
-        return data
+        return bytes(data)
 
 
 class Response (Header):
@@ -120,7 +113,7 @@ class Response (Header):
 
 
     def encode (self):
-        return super().encode()
+        return bytes(super().encode())
 
 
 
@@ -156,7 +149,7 @@ class Data (Header):
 
         data[5:6] = self.size.to_bytes(1, 'big')
 
-        return data
+        return bytes(data)
 
 
 
@@ -186,7 +179,7 @@ class Success (Header):
 
         data[7:8] = self.package_id.to_bytes(1, 'big')
 
-        return data
+        return bytes(data)
 
 
 
@@ -204,7 +197,7 @@ class Timeout (Header):
 
 
     def encode (self):
-        return super().encode()
+        return bytes(super().encode())
 
 
 
@@ -234,7 +227,7 @@ class Error (Header):
 
         data[6:7] = self.package_id.to_bytes(1, 'big')
 
-        return data
+        return bytes(data)
 
 
 
