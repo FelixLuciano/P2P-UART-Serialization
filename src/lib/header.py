@@ -3,7 +3,7 @@ from lib.thread import Thread
 
 class Header:
     SIZE = 10
-    _types = {}
+    _types = []
 
 
     def __init__ (self, length:int=1, index:int=1):
@@ -12,15 +12,15 @@ class Header:
 
 
     @classmethod
-    def register_type (cls, name:str, instance):
-        cls._types[name] = instance
+    def register_type (cls, instance):
+        cls._types.append(instance)
 
 
     @classmethod
     def get_type (cls, type_bytes:bytes):
         type_value = int.from_bytes(type_bytes, 'big')
 
-        for instance in cls._types.values():
+        for instance in cls._types:
             if type_value == instance.type_byte:
                 return instance
 
@@ -68,7 +68,7 @@ class Header:
 
 
     @classmethod
-    def request (cls, thread:Thread, timeout:int=None, *args, **kwargs):
+    def request (cls, thread:Thread, timeout:int=-1, *args, **kwargs):
         data, len_data = thread.receive(cls.SIZE, timeout=timeout)
 
         if len_data == 0:
@@ -76,7 +76,7 @@ class Header:
 
         header = cls.decode(data, *args, **kwargs)
 
-        if header.type != cls.type:
+        if type(header) != cls:
             return Error()
 
         return header
@@ -84,7 +84,6 @@ class Header:
 
 
 class Request (Header):
-    type = 'request'
     type_byte = 0x01
 
 
@@ -108,7 +107,6 @@ class Request (Header):
 
 
 class Response (Header):
-    type = 'response'
     type_byte = 0x02
 
 
@@ -127,7 +125,6 @@ class Response (Header):
 
 
 class Data (Header):
-    type = 'data'
     type_byte = 0x03
 
 
@@ -164,7 +161,6 @@ class Data (Header):
 
 
 class Success (Header):
-    type = 'success'
     type_byte = 0x04
 
 
@@ -195,7 +191,6 @@ class Success (Header):
 
 
 class Timeout (Header):
-    type = 'timeout'
     type_byte = 0x05
 
 
@@ -214,7 +209,6 @@ class Timeout (Header):
 
 
 class Error (Header):
-    type = 'error'
     type_byte = 0x06
 
 
@@ -244,9 +238,9 @@ class Error (Header):
 
 
 
-Header.register_type('request', Request)
-Header.register_type('response', Response)
-Header.register_type('data', Data)
-Header.register_type('success', Success)
-Header.register_type('timeout', Timeout)
-Header.register_type('error', Error)
+Header.register_type(Request)
+Header.register_type(Response)
+Header.register_type(Data)
+Header.register_type(Success)
+Header.register_type(Timeout)
+Header.register_type(Error)
