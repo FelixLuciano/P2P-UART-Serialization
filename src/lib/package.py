@@ -129,7 +129,7 @@ class Data (Package):
         submit_success = False
 
         while not submit_success:
-            super().submit()
+            super().submit(thread=thread)
 
             response = Success(package_id=self.index).request(thread=thread, timeout=timeout)
 
