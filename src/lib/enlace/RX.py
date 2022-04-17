@@ -1,7 +1,7 @@
 from threading import Thread
 import time
 
-from lib.interface import Interface
+from lib.interface.Interface import Interface
 
 
 class RX:
@@ -15,8 +15,12 @@ class RX:
         self.threadStop = False
         self.threadPaused = True
 
+    
+    def __len__ (self) -> int:
+        return len(self.buffer)
 
-    def _thread (self):
+
+    def _thread (self) -> None:
         while not self.threadStop:
             if not self.threadPaused:
                 data, size = self.interface.read(self.READ_LENGTH)
@@ -27,53 +31,51 @@ class RX:
             time.sleep(self.READ_PREIOD)
 
 
-    def enable (self):
+    def enable (self) -> None:
         self.thread = Thread(target=self._thread)
 
         self.thread.start()
 
 
-    def disable (self):
+    def disable (self) -> None:
         self.threadStop = True
 
 
-    def pause (self):
+    def pause (self) -> None:
         self.threadPaused = True
 
 
-    def resume (self):
+    def resume (self) -> None:
         self.threadPaused = False
 
 
-    def getLen (self):
-        return len(self.buffer)
+    def isEmpty (self) -> bool:
+        return len(self) == 0
 
 
-    def isEmpty (self):
-        return self.getLen() == 0
-
-
-    def clear (self):
+    def clear (self) -> None:
         self.buffer = b''
 
 
-    def getBuffer (self, size:int=-1):
+    def getBuffer (self, size:int=-1) -> bytes:
         if size == 0:
-            return b'', 0
+            return b''
+
         elif size > 0:
             buffer = self.buffer[0:size]
             self.buffer = self.buffer[size:]
+
         else:
             buffer = self.buffer
             self.clear()
 
-        return buffer, len(buffer)
+        return buffer
 
 
-    def receive (self, size:int=-1, timeout:int=-1):
+    def receive (self, size:int=-1, timeout:int=-1) -> bytes:
         timer = 0
 
-        while self.isEmpty() or self.getLen() < size:
+        while 0 == len(self) < size:
             if self.threadPaused:
                 self.resume()
 
@@ -85,8 +87,16 @@ class RX:
                 if timer >= timeout:
                     self.pause()
 
-                    return self.getBuffer(0)
+                    raise self.TimeoutException(timer)
 
         self.pause()
 
         return self.getBuffer(size)
+
+
+    class TimeoutException (Exception):
+        """Couldn't receive the amount requested bytes within the timeout.
+        """
+        def __init__ (self, time, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.time = time

@@ -23,15 +23,15 @@ class Interface:
     TIMEOUT = 0.1
 
 
-    def __init__ (self, name:str):
-        self.name = name
+    def __init__ (self, port:str):
+        self.port = port
         self.port = None
         self.rxRemain = b''
 
 
-    def open (self):
+    def open (self) -> None:
         self.port = serial.Serial(
-            port = self.name,
+            port = self.port,
             baudrate = self.BAUDRATE,
             bytesize = self.BYTESIZE,
             parity = self.PARITY,
@@ -40,26 +40,26 @@ class Interface:
         )
 
 
-    def close (self):
+    def close (self) -> None:
         self.port.close()
 
 
-    def flush (self):
+    def flush (self) -> None:
         self.port.flushInput()
         self.port.flushOutput()
 
 
     @staticmethod
-    def encode (data:bytes):
+    def encode (data:bytes) -> bytes:
         return binascii.hexlify(data)
 
 
     @staticmethod
-    def decode (data:bytes):
+    def decode (data:bytes) -> bytes:
         return binascii.unhexlify(data)
 
 
-    def write (self, txBuffer:bytes):
+    def write (self, txBuffer:bytes) -> int:
         """ Write data to serial port
 
         This command takes a buffer and format
@@ -75,7 +75,7 @@ class Interface:
         return nTx // 2
 
 
-    def read (self, nBytes:int):
+    def read (self, nBytes:int) -> tuple[bytes, int]:
         """ Read nBytes from the UART com port
 
         Not all reading returns a multiple of 2
@@ -105,6 +105,4 @@ class Interface:
             return rxBufferDecoded, nRx
 
         except:
-            print('[ERROR] Physical interface, read, decode. buffer:\n', rxBufferValid)
-
             return b'', 0
