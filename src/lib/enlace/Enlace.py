@@ -36,7 +36,10 @@ class Enlace:
 
 
     def receive (self, size:int=-1, timeout:int=-1) -> bytes:
-        return self.rx.receive(size, timeout)
+        try:
+            return self.rx.receive(size, timeout)
+        except RX.TimeoutException as error:
+            raise Enlace.TimeoutException(error.time)
 
 
     class TimeoutException (RX.TimeoutException):

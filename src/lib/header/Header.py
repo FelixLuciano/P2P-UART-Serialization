@@ -11,7 +11,7 @@ class Header (ABC):
 
     def __init__ (self, length:int=1, index:int=1):
         if length > 255 or index > 255:
-            raise self.ExcededSizeLimitException()
+            raise Header.ExcededSizeLimitException()
 
         self.length = length
         self.index = index
@@ -61,6 +61,7 @@ class Header (ABC):
         if cls.type:
             if type_value != cls.type:
                 raise Header.UnexpectedHeaderException(Header.decode(data))
+
         else:
             for instance in Header._types:
                 if type_value == instance.type:
@@ -75,8 +76,9 @@ class Header (ABC):
             data = enlace.receive(Header.SIZE, timeout)
 
             return Header.decode(data, *args, **kwargs)
-        except Enlace.TimeoutException:
-            raise Header.TimeoutException()
+
+        except Enlace.TimeoutException as error:
+            raise Header.TimeoutException(error.time)
 
     
     class ExcededSizeLimitException (Exception):

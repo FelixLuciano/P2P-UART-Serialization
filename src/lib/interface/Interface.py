@@ -23,10 +23,11 @@ class Interface:
     PARITY = serial.PARITY_NONE
     STOPBITS = serial.STOPBITS_ONE
     TIMEOUT = 0.1
+    port = None
 
 
     def __init__ (self, port:str):
-        self.port = serial.Serial(port)
+        self.name = port
         self.rxRemain = b''
 
 
@@ -36,10 +37,13 @@ class Interface:
         """
         if sys.platform.startswith('win'):
             ports = ['COM%s' % i for i in range(1, 256)]
+
         elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
             ports = glob.glob('/dev/tty[A-Za-z]*')
+
         elif sys.platform.startswith('darwin'):
             ports = glob.glob('/dev/tty.*')
+
         else:
             raise EnvironmentError('Unsupported platform')
 
@@ -47,8 +51,9 @@ class Interface:
 
         for index, port in enumerate(ports):
             try:
-                Interface(port).close()
+                serial.Serial(port).close()
                 result.append(port)
+
             except (OSError, serial.SerialException):
                 pass
 
@@ -65,7 +70,7 @@ class Interface:
 
     def open (self) -> None:
         self.port = serial.Serial(
-            port = self.port,
+            port = self.name,
             baudrate = self.BAUDRATE,
             bytesize = self.BYTESIZE,
             parity = self.PARITY,

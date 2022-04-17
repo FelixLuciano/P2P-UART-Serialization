@@ -18,8 +18,11 @@ class TX:
     def _thread (self) -> None:
         while not self.threadStop:
             if not self.threadPaused:
-                self.interface.write(self.buffer[0])
-                self.buffer.pop(0)
+                if not self.isEmpty():
+                    self.interface.write(self.buffer[0])
+                    self.buffer.pop(0)
+                else:
+                    self.pause()
 
             time.sleep(self.TRANSMIT_PREIOD)
 
@@ -61,5 +64,3 @@ class TX:
 
         while not self.isEmpty():
             time.sleep(self.TRANSMIT_PREIOD)
-
-        self.pause()

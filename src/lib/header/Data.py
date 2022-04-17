@@ -3,10 +3,11 @@ from lib.header.Header import Header
 
 class Data_header (Header):
     type = 0x03
+    MAX_PAYLOAD_SIZE = 114
 
 
     def __init__ (self, length:int=1, index:int=1, size:int=0):
-        if size > 114:
+        if size > Data_header.MAX_PAYLOAD_SIZE:
             raise Header.ExcededSizeLimitException()
 
         super().__init__(length, index)

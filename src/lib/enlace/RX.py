@@ -72,10 +72,10 @@ class RX:
         return buffer
 
 
-    def receive (self, size:int=-1, timeout:int=-1) -> bytes:
+    def receive (self, size, timeout:int=-1) -> bytes:
         timer = 0
 
-        while 0 == len(self) < size:
+        while self.isEmpty() or len(self) < size:
             if self.threadPaused:
                 self.resume()
 
