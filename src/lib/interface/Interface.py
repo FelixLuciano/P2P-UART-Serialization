@@ -1,3 +1,5 @@
+import sys
+import glob
 import binascii
 
 import serial
@@ -24,9 +26,41 @@ class Interface:
 
 
     def __init__ (self, port:str):
-        self.port = port
-        self.port = None
+        self.port = serial.Serial(port)
         self.rxRemain = b''
+
+
+    @staticmethod
+    def list_ports () -> list[str]:
+        """ From: https://stackoverflow.com/a/70514001/13587869
+        """
+        if sys.platform.startswith('win'):
+            ports = ['COM%s' % i for i in range(1, 256)]
+        elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+            ports = glob.glob('/dev/tty[A-Za-z]*')
+        elif sys.platform.startswith('darwin'):
+            ports = glob.glob('/dev/tty.*')
+        else:
+            raise EnvironmentError('Unsupported platform')
+
+        result = []
+
+        for index, port in enumerate(ports):
+            try:
+                Interface(port).close()
+                result.append(port)
+            except (OSError, serial.SerialException):
+                pass
+
+        return result
+
+    
+    @staticmethod
+    def get_available_interface ():
+        ports = Interface.list_ports()
+
+        if len(ports) > 0:
+            return Interface(ports[0])
 
 
     def open (self) -> None:
