@@ -1,3 +1,5 @@
+from logging import Logger
+
 from lib.header.Request import Request_header
 from lib.package.Package import Package
 from lib.enlace.Enlace import Enlace
@@ -22,12 +24,23 @@ class Request_package (Package):
         return bytes(package)
 
 
+    def submit (self, enlace:Enlace, logger:Logger=None):
+        package = super().submit(enlace)
+
+        if logger != None:
+            logger.info(f'Sent Request ({Request_header.type}) in {len(package)} bytes to {self.target} for {self.length} packages.')
+
+
     @staticmethod
-    def request (enlace:Enlace, timeout:int=-1, *args, **kwargs):
+    def request (enlace:Enlace, timeout:int=-1, logger:Logger=None, *args, **kwargs):
         try:
             header = Package.request(Request_header, enlace, timeout,*args, **kwargs)
+            package = Request_package(header.target, header.length)
 
-            return Request_package(header.target, header.length)
+            if logger != None:
+                logger.info(f'Received Request ({Request_header.type}) in {Request_header.SIZE + len(Package.END)} bytes to {package.target} for {package.length} packages.')
+
+            return package
 
         except Request_header.UnexpectedHeaderException as error:
             raise Request_package.UnexpectedRequestException(error.header)

@@ -1,14 +1,30 @@
+import os
 import json
 from lib.interface import Interface
 from lib.enlace import Enlace
 from lib.stream import Data_stream
+import logging
 
 
 class UART ():
-    def __init__ (self, port:str=None):
+    logger = None
+
+
+    def __init__ (self, port:str=None, log_filename:str=None):
         com = Interface.get_available_interface() if port == None else Interface(port)
 
         self.enlace = Enlace(com)
+        
+        if log_filename != None:
+            self.logger = logging.getLogger(log_filename)
+
+            logging.basicConfig(
+                filename=os.path.join('logs', f'{log_filename}.log'),
+                filemode='w',
+                format='%(asctime)s.%(msecs)03d %(message) s',
+                datefmt='%d/%m/%Y %H:%M:%S',
+                level=logging.INFO
+            )
 
 
     def __enter__ (self):
@@ -21,24 +37,33 @@ class UART ():
         self.enlace.disable()
 
 
-    def push_data (self, data:any, target:int, timeout:int):
+    def push_data (self, data:any, to:int, timeout:int):
         try:
             adata = json.dumps(data)
 
-            Data_stream(adata.encode()).submit(self.enlace, target, timeout)
+            Data_stream(adata.encode()).submit(self.enlace, to, timeout, self.logger)
+
+        except Data_stream.ExcededSizeLimitException:
+            raise UART.ExcededSizeLimitException()
 
         except Data_stream.TimeoutException as error:
             raise UART.TimeoutException(error.time)
 
 
-    def pull_data (self, target:int, timeout:int) -> any:
+    def pull_data (self, from_:int, timeout:int) -> any:
         try:
-            response = Data_stream.request(self.enlace, target, timeout)
+            response = Data_stream.request(self.enlace, from_, timeout, self.logger)
 
             return json.loads(response.data)
 
         except Data_stream.TimeoutException as error:
             raise UART.TimeoutException(error.time)
+
+
+    class ExcededSizeLimitException (Data_stream.ExcededSizeLimitException):
+        """Data size exceed limit.
+        """
+        pass
         
 
     class TimeoutException (Data_stream.TimeoutException):

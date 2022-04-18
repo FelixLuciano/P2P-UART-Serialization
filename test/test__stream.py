@@ -1,7 +1,8 @@
 import sys
 import os
-import unittest
+import time
 from threading import Thread
+import unittest
 
 sys.path.append(os.path.join('src'))
 from lib.interface import Interface
@@ -44,10 +45,11 @@ class Test__Data_stream (unittest.TestCase):
         try:
             enlace.enable()
             thread.start()
+            time.sleep(0.5)
 
             Data_stream(b'Hello World!').submit(enlace, 1, 1)
             
-            self.assertEqual(self.response.data, b'Hello World!', msg='Timeout! No success response.')
+            self.assertEqual(self.response.data, b'Hello World!')
 
         finally:
             enlace.disable()
@@ -61,6 +63,39 @@ class Test__Data_stream (unittest.TestCase):
             enlace.enable()
 
             self.response = Data_stream.request(enlace, 1, 1)
+
+        finally:
+            enlace.disable()
+
+
+    def test__request (self):
+        """ To do.
+        """
+        com = Interface.get_available_interface()
+        enlace = Enlace(com)
+        thread = Thread(target=self._test__request__client)
+
+        try:
+            enlace.enable()
+            thread.start()
+
+            response = Data_stream.request(enlace, 1, 1)
+            
+            self.assertEqual(response.data, b'Hello World!')
+
+        finally:
+            enlace.disable()
+
+
+    def _test__request__client (self):
+        com = Interface.get_available_interface()
+        enlace = Enlace(com)
+
+        try:
+            enlace.enable()
+
+            time.sleep(0.5)
+            Data_stream(b'Hello World!').submit(enlace, 1, 1)
 
         finally:
             enlace.disable()

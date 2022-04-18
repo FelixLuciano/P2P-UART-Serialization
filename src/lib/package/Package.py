@@ -29,7 +29,11 @@ class Package (ABC):
 
 
     def submit (self, enlace:Enlace):
-        enlace.transmit(self.encode())
+        package = self.encode()
+
+        enlace.transmit( package)
+
+        return package
 
 
     @staticmethod
@@ -44,7 +48,7 @@ class Package (ABC):
 
         return header
 
-    
+
     class ExcededSizeLimitException (Header.ExcededSizeLimitException):
         """configuration parameters exceed the data per byte limit.
         """

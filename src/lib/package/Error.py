@@ -1,3 +1,5 @@
+from logging import Logger
+
 from lib.header.Error import Error_header
 from lib.package.Package import Package
 from lib.enlace.Enlace import Enlace
@@ -22,12 +24,23 @@ class Error_package (Package):
         return bytes(package)
 
 
+    def submit (self, enlace:Enlace, logger:Logger=None):
+        package = super().submit(enlace)
+
+        if logger != None:
+            logger.info(f'Sent Error ({Error_header.type}) in {len(package)} bytes for package {self.package_index}.')
+
+
     @staticmethod
-    def request (enlace:Enlace, timeout:int=-1, *args, **kwargs):
+    def request (enlace:Enlace, timeout:int=-1, logger:Logger=None, *args, **kwargs):
         try:
             header = Package.request(Error_header, enlace, timeout, *args, **kwargs)
+            package = Error_package(header.package_index)
 
-            return Error_package(header.package_index)
+            if logger != None:
+                logger.info(f'Received Error ({header.type}) in {Error_header.SIZE + len(Package.END)} bytes for package {package.package_index}.')
+
+            return package
 
         except Error_header.UnexpectedErrorException as error:
             raise Error_package.UnexpectedErrorException(error.header)
