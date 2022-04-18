@@ -1,3 +1,4 @@
+import json
 from lib.interface import Interface
 from lib.enlace import Enlace
 from lib.stream import Data_stream
@@ -20,19 +21,21 @@ class UART ():
         self.enlace.disable()
 
 
-    def push_data (self, data:bytes, target:int, timeout:int=-1):
+    def push_data (self, data:any, target:int, timeout:int):
         try:
-            Data_stream(data).submit(self.enlace, target, timeout)
+            adata = json.dumps(data)
+
+            Data_stream(adata.encode()).submit(self.enlace, target, timeout)
 
         except Data_stream.TimeoutException as error:
             raise UART.TimeoutException(error.time)
 
 
-    def pull_data (self, target:int, timeout:int=-1):
+    def pull_data (self, target:int, timeout:int) -> any:
         try:
             response = Data_stream.request(self.enlace, target, timeout)
 
-            return response.data
+            return json.loads(response.data)
 
         except Data_stream.TimeoutException as error:
             raise UART.TimeoutException(error.time)
