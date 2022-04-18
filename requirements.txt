@@ -2,4 +2,3 @@ about-time==3.1.1
 alive-progress==2.4.1
 grapheme==0.6.0
 pyserial==3.5
-python-dotenv==0.20.0

@@ -3,15 +3,11 @@ import os
 import unittest
 from threading import Thread
 
-from dotenv import dotenv_values
-
 sys.path.append(os.path.join('src'))
 from lib.interface import Interface
 from lib.enlace import Enlace
 from lib.stream import Data_stream
 from lib.package.Data import Data_package
-
-config = dotenv_values()
 
 
 class Test__Data_stream (unittest.TestCase):
