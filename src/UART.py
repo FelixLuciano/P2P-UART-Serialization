@@ -2,7 +2,7 @@ import os
 import json
 from lib.interface import Interface
 from lib.enlace import Enlace
-from lib.stream import Data_stream
+from lib.stream import Bytes_stream, Data_stream
 import logging
 
 
@@ -39,24 +39,26 @@ class UART ():
 
     def push_data (self, data:any, to:int, timeout:int=-1):
         try:
-            if type(data) != bytes:
-                data = json.dumps(data).encode()
+            if type(data) == bytes:
+                stream = Bytes_stream(data)
+            else:
+                stream = Data_stream(data)
 
-            Data_stream(data).submit(self.enlace, to, timeout, self.logger)
+            stream.submit(self.enlace, to, timeout, self.logger)
 
-        except Data_stream.ExcededSizeLimitException:
+        except Bytes_stream.ExcededSizeLimitException:
             raise UART.ExcededSizeLimitException()
 
-        except Data_stream.TimeoutException as error:
+        except Bytes_stream.TimeoutException as error:
             raise UART.TimeoutException(error.time)
 
 
     def pull_data (self, from_:int, type_=any, timeout:int=-1) -> any:
         try:
-            response = Data_stream.request(self.enlace, from_, timeout, self.logger)
-
-            if type_ != bytes:
-                response.data = json.loads(response.data)
+            if type_ == bytes:
+                response = Bytes_stream.request(self.enlace, from_, timeout, self.logger)
+            else:
+                response = Data_stream.request(self.enlace, from_, timeout, self.logger)
 
             return response.data
 
