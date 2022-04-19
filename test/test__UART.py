@@ -22,21 +22,19 @@ class Test__UART (unittest.TestCase):
 
         with UART(log_filename='Client1') as com:
             with open(os.path.join('assets', 'image', f'image_{image_index}.webp'), 'rb') as file:
-                data = file.read().hex()
+                data = file.read()
         
-            com.push_data(data, 1, 1)
-
-        result = bytes.fromhex(self.result)
+            com.push_data(data, 1)
 
         with open(os.path.join('assets', 'image', f'image_{image_index}.output.webp'), 'wb') as file:
-            file.write(result)
+            file.write(self.result)
 
         self.assertEqual(self.result, data)
 
 
     def _test__push__server (self):
         with UART() as com:
-            self.result = com.pull_data(1, 1)
+            self.result = com.pull_data(1, bytes)
 
 
     def test__pull (self):
@@ -46,17 +44,15 @@ class Test__UART (unittest.TestCase):
         image_index = randint(1, 6)
 
         with open(os.path.join('assets', 'image', f'image_{image_index}.webp'), 'rb') as file:
-            data = file.read()
-
-        self.data = data.hex()
+            self.data = file.read()
 
         thread.start()
 
         with UART(log_filename='Server1') as com:
-            result = com.pull_data(1, 1)
+            result = com.pull_data(1, bytes)
 
         with open(os.path.join('assets', 'image', f'image_{image_index}.output.webp'), 'wb') as file:
-            file.write(bytes.fromhex(result))
+            file.write(result)
 
         self.assertEqual(result, self.data)
 
@@ -65,7 +61,7 @@ class Test__UART (unittest.TestCase):
         time.sleep(0.5)
 
         with UART() as com:
-            com.push_data(self.data, 1, 1)
+            com.push_data(self.data, 1)
 
 
     def test__push_timeout__exception (self):

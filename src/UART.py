@@ -37,11 +37,12 @@ class UART ():
         self.enlace.disable()
 
 
-    def push_data (self, data:any, to:int, timeout:int):
+    def push_data (self, data:any, to:int, timeout:int=-1):
         try:
-            adata = json.dumps(data)
+            if type(data) != bytes:
+                data = json.dumps(data).encode()
 
-            Data_stream(adata.encode()).submit(self.enlace, to, timeout, self.logger)
+            Data_stream(data).submit(self.enlace, to, timeout, self.logger)
 
         except Data_stream.ExcededSizeLimitException:
             raise UART.ExcededSizeLimitException()
@@ -50,11 +51,14 @@ class UART ():
             raise UART.TimeoutException(error.time)
 
 
-    def pull_data (self, from_:int, timeout:int) -> any:
+    def pull_data (self, from_:int, type_=any, timeout:int=-1) -> any:
         try:
             response = Data_stream.request(self.enlace, from_, timeout, self.logger)
 
-            return json.loads(response.data)
+            if type_ != bytes:
+                response.data = json.loads(response.data)
+
+            return response.data
 
         except Data_stream.TimeoutException as error:
             raise UART.TimeoutException(error.time)
