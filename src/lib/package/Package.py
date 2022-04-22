@@ -1,3 +1,4 @@
+import math
 from abc import ABC, abstractmethod
 
 from lib.enlace.Enlace import Enlace
@@ -6,6 +7,7 @@ from lib.header.Header import *
 
 class Package (ABC):
     END = b'\xAA\xBB\xCC\xDD'
+    GENERATOR_POLYNOMIAL = 0b1011010110101101
     _types = []
 
 
@@ -47,6 +49,30 @@ class Package (ABC):
             raise Package.InvalidEndException()
 
         return header
+
+    
+    @staticmethod
+    def cyclic_redundancy_check (data:bytes, crc:int=0):
+        len_bits = lambda number: math.floor(math.log(number) / math.log(2) + 1)
+        get_bit = lambda number, index: (number >> index) & 1
+
+        divisor = int.from_bytes(data, 'big')
+        divisor_size = len_bits(divisor) - 1
+        dividend_size = len_bits(Package.GENERATOR_POLYNOMIAL) - 1
+
+        divisor = (divisor << dividend_size) | crc
+        remainder = divisor >> divisor_size
+
+        for i in range(divisor_size):
+            b0 = get_bit(remainder, dividend_size)
+
+            if b0 == 1:
+                remainder ^= Package.GENERATOR_POLYNOMIAL
+
+            remainder <<= 1
+            remainder |= get_bit(divisor, divisor_size - i - 1)
+
+        return remainder
 
 
     class ExcededSizeLimitException (Header.ExcededSizeLimitException):

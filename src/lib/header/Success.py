@@ -18,7 +18,7 @@ class Success_header (Header):
         super().decode(data)
 
         header = Success_header(
-          package_index=int.from_bytes(data[7:8], 'big')
+          package_index = int.from_bytes(data[7:8], 'big')
         )
 
         if package_index and header.package_index != package_index:

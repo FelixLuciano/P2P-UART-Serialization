@@ -6,11 +6,11 @@ class Data_header (Header):
     MAX_PAYLOAD_SIZE = 114
 
 
-    def __init__ (self, length:int=1, index:int=1, size:int=0):
+    def __init__ (self, length:int=1, index:int=1, size:int=0, crc:int=0):
         if size > Data_header.MAX_PAYLOAD_SIZE:
             raise Header.ExcededSizeLimitException()
 
-        super().__init__(length, index)
+        super().__init__(length, index, crc)
         self.size = size
 
 
@@ -21,7 +21,8 @@ class Data_header (Header):
         header = Data_header(
           length = int.from_bytes(data[3:4], 'big'),
           index = int.from_bytes(data[4:5], 'big'),
-          size = int.from_bytes(data[5:6], 'big')
+          size = int.from_bytes(data[5:6], 'big'),
+          crc = int.from_bytes(data[8:10], 'big')
         )
 
         if (

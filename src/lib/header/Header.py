@@ -9,12 +9,15 @@ class Header (ABC):
     _types = []
 
 
-    def __init__ (self, length:int=1, index:int=1):
+    def __init__ (self, length:int=1, index:int=1, crc:int=0):
         if length > 255 or index > 255:
+            raise Header.ExcededSizeLimitException()
+        elif crc > 255**2:
             raise Header.ExcededSizeLimitException()
 
         self.length = length
         self.index = index
+        self.crc = crc
 
 
     @staticmethod
@@ -45,9 +48,8 @@ class Header (ABC):
         header.extend((0).to_bytes(1, 'big'))
         header.extend((0).to_bytes(1, 'big'))
 
-        # Bytes h8, h9 - Reserved to CRC
-        header.extend((0).to_bytes(1, 'big'))
-        header.extend((0).to_bytes(1, 'big'))
+        # Bytes h8, h9 - Cyclic Redundancy Check
+        header.extend((self.crc).to_bytes(2, 'big'))
 
         return header
 

@@ -5,6 +5,7 @@ from lib.package.Package import Package
 from lib.package.Success import Success_package
 from lib.package.Error import Error_package
 from lib.enlace.Enlace import Enlace
+from lib.package.Timeout import Timeout_package
 
 
 class Data_package (Package):
@@ -25,7 +26,8 @@ class Data_package (Package):
 
     def encode (self) -> bytes:
         package = bytearray()
-        header = Data_header(self.length, self.index, len(self))
+        crc = Data_package.cyclic_redundancy_check(self.data)
+        header = Data_header(self.length, self.index, len(self), crc)
 
         package.extend(header.encode())
         package.extend(self.data)
@@ -43,6 +45,10 @@ class Data_package (Package):
 
             try:
                 return Success_package.request(enlace, timeout, logger, package_index=self.index)
+
+            except Package.TimeoutException() as error:
+                Timeout_package().submit(enlace, logger)
+                raise error
 
             except Success_package.UnexpectedSuccessException as error:
                 response = error.header
@@ -67,25 +73,31 @@ class Data_package (Package):
                 if logger != None:
                     logger.info(f'Received Data ({header.type}) {header.index} of {header.length} in {Data_header.SIZE + len(payload) + len(Package.END)} bytes.')
 
+                if Data_package.cyclic_redundancy_check(payload, header.crc):
+                    raise Package.InvalidPackageException()
+
                 if end != Package.END:
                     enlace.clear()
 
                     raise Package.InvalidEndException()
 
-                Success_package(header.index).submit(enlace, logger)
+                try:
+                    Success_package(header.index).submit(enlace, logger)
+
+                except Package.TimeoutException() as error:
+                    Timeout_package().submit(enlace, logger)
+                    raise error
 
                 return Data_package(header.length, header.index, payload)
-            except Data_header.UnnexpectedDataException as error:
-                enlace.clear()
+
+            except Data_header.UnexpectedDataException as error:
                 Error_package(error.header.index).submit(enlace, logger)
                 pass
 
             except Enlace.TimeoutException as error:
                 raise Package.TimeoutException(error.time)
 
-            except Package.InvalidEndException:
-                print('ERR EOP RX')
-                enlace.clear()
+            except Package.InvalidPackageException:
                 Error_package(header.index).submit(enlace, logger)
                 pass
 
