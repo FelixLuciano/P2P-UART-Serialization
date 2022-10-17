@@ -1,6 +1,6 @@
-[Dr. Rodrigo Carareto](http://lattes.cnpq.br/4506432912671820), [Insper](https://github.com/Insper), 2022.
+[Rodrigo Carareto, Dr](http://lattes.cnpq.br/4506432912671820). Camada Física da Computação. [Insper](https://github.com/Insper), 2022.
 
-# Datagram
+# P2P UART Serialization
 
 To do.
 
