@@ -1,6 +1,6 @@
 [Rodrigo Carareto, Dr](http://lattes.cnpq.br/4506432912671820). Camada Física da Computação. [Insper](https://github.com/Insper), 2022.
 
-# P2P UART Serialization
+# Peer to Peer UART Serialization
 
 To do.
 
